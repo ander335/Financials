@@ -2,7 +2,7 @@
 
 # General
 - Extract key financial metrics from public company annual reports (10-K, 20-F or equivalent) at least for the last 10 years and compile them into a structured table.
-- Reports are normally presented in sequence every 2 year (2025, 2023, etc.). `Consolidated Balance sheet` is normaly discoled for 2 years in the report. Other statements, might be disclosed for 3 years. Consider only latest 2.
+- Reports are normally presented in sequence every 2 years (2025, 2023, etc.). `Consolidated Balance sheet` is normally disclosed for 2 years in the report. Other statements, might be disclosed for 3 years. Consider only latest 2.
 
 # Financial report structure
 - The following statements normally appear together in the financial report
