@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -)",
+      "Bash(python analyze_pdf.py)"
+    ],
+    "additionalDirectories": [
+      "G:\\projects\\Financials"
+    ]
+  }
+}
