@@ -6,7 +6,8 @@ to a .txt file in the output/ folder, ready for analysis.
 
 Usage:
     pip install pypdf
-    python analyze_pdf.py
+    python analyze_pdf.py                          # convert all PDFs in reports/
+    python analyze_pdf.py report1.pdf report2.pdf  # convert specific files only
 """
 
 import sys
@@ -29,7 +30,17 @@ def extract_text(pdf_path: Path) -> str:
 
 
 def main():
-    pdf_files = sorted(REPORTS_DIR.glob("*.pdf"))
+    if sys.argv[1:]:
+        pdf_files = []
+        for name in sys.argv[1:]:
+            p = REPORTS_DIR / name
+            if not p.exists():
+                print(f"File not found: {p}")
+                sys.exit(1)
+            pdf_files.append(p)
+    else:
+        pdf_files = sorted(REPORTS_DIR.glob("*.pdf"))
+
     if not pdf_files:
         print(f"No PDF files found in {REPORTS_DIR}")
         sys.exit(1)

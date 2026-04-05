@@ -7,8 +7,9 @@
 ## Read `CLAUDE.md` file for context
 
 ## List all files in the `reports/` folder
-   - Using `analyze_pdf.py` script convert `.pdf` files into text
+   - List files in the `output/`, for the `.pdf` reports that are not yet converted to text use `analyze_pdf.py`. Convert only the files that are not yeat present in the `output/` folder, provide them as the script arguments.
    - Do not analyze reports at this stage.
+   - Triage the reports by their name. There could be annual reports and 1 quater report (optional).
    - Ananlyze how much financial data is presented. Example:
       - For reports 2025, 2021, ..., 2015 total available period will be 12 years (2025 - 2015 + 2)
       - This value can be rederenced as `AVAILABLE_PERIOD`
@@ -25,10 +26,25 @@
    - Provide comments how the data was extraced for this comany.
    - Ask for approval to proceed with the other reports.
 
-## Read other reports. Aggregate info and present in the following format according to the `CLAUDE.md` file:
+## Read other reports. Aggregate info in the following format according to the `CLAUDE.md` file:
    - Output data that is marked as `###` three sharps under `# Financial report structure` structure.
    - Rows should represent years, columns - metcirs.
    - The most recent year should appear on the bottom.
+
+## Aggregate latest quater report (Optional, if the report was found)
+   - Add corresponding year to the result table. Mark the year with `TTM` in the table.
+   - Apply the following rules: 
+   - `Shares outstanding` should be taken from the quater report.
+   - All balance sheet data should be taken from the quater report.
+   - For the `Consolidated Income statement` and `Consolidated statement of cash flow` use the TTM approach to get the numbers that can be compared with the previous year:
+      - Locate statements that include the most fiscal data. Example:
+         - For 3Q report - Look for `Nine Months Ended`
+         - For 2Q or interim report - Look for `Fix Months Ended` or `Half-year Ended`
+      - Calculate `the difference` with the same period previous year. Example:
+         - Revenue Nine Months Ended Dec 31, 2025 - 13,031.7
+         - Revenue Nine Months Ended Dec 31, 2024 - 11,651.2
+         - Calculate `the difference` +1380.5 = (13,031.7 - 11,651.2)
+      - Result value is the previous financial year value with `the difference` applied.
 
 ## Note any data gaps, restatements, or fiscal year changes
 
@@ -55,5 +71,5 @@ pip install pypdf
 
 **Run**
 1. Place annual report PDFs in the `reports/` folder
-2. Run: `python analyze_pdf.py`
-3. Text files appear in `output/` — then run `/analyze-company` for analysis
+2. Run: `python analyze_pdf.py` to convert all PDFs, or pass specific filenames to convert only those:
+   - `python analyze_pdf.py report1.pdf report2.pdf`
