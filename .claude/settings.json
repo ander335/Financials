@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(python -)",
-      "Bash(python analyze_pdf.py)"
+      "Bash(python analyze_pdf.py)",
+      "Bash(python historical_prices.py *)"
     ],
     "additionalDirectories": [
       "G:\\projects\\Financials"

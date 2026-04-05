@@ -11,6 +11,7 @@
    - Do not analyze reports at this stage.
    - Ananlyze how much financial data is presented. Example:
       - For reports 2025, 2021, ..., 2015 total available period will be 12 years (2025 - 2015 + 2)
+      - This value can be rederenced as `AVAILABLE_PERIOD`
 
 ## Read only the most recent financial report
    - Extract company name and ticker, primary listing exchange, main reporting currency.
@@ -35,6 +36,10 @@
    - Save result table into 2 `.csv` files into the `output/` folder.
    - First one - profit_and_loss.csv with Revenue, EBIT, D&A, Total debt, Excess cash, Diluted shares.
    - First one - cash_flow.csv with Cash flow from operations, Capex, Debt payment (net).
+
+## Extract historical prices data
+   - Run `historical_prices.py` with the company ticker and the number of years `AVAILABLE_PERIOD` + 1 as arguments.
+   - Example: `python historical_prices.py AAPL 13` (where 13 = `AVAILABLE_PERIOD` years of data + 1 for margin)
 
 ---
 
