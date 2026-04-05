@@ -1,23 +1,40 @@
-Analyze annual reports found in the `reports/` subfolder of this project.
+# Analyze annual reports found in the `reports/` subfolder of this project.
 
-Follow the process in CLAUDE.md:
-1. List all files in the `reports/` folder and identify the company (ticker, name, fiscal year end) from the filenames or document contents
-2. Read the most recent financial report and locate the consolidated statements according to the `CLAUDE.md` file.
-   - Familiarize with their exact naming and structure since they will appear in a similar way in older reports.
+# General
+- Be precise with numbers — use the exact figures from filings, not rounded estimates. Flag any line items that required judgment calls.
+
+# Steps
+## Read `CLAUDE.md` file for context
+
+## List all files in the `reports/` folder
+   - Using `analyze_pdf.py` script convert `.pdf` files into text
+   - Do not analyze reports at this stage.
+   - Ananlyze how much financial data is presented. Example:
+      - For reports 2025, 2021, ..., 2015 total available period will be 12 years (2025 - 2015 + 2)
+
+## Read only the most recent financial report
+   - Extract company name and ticker, primary listing exchange, main reporting currency.
+   - Locate the consolidated statements according to the `CLAUDE.md` file. Familiarize with their exact naming and structure since they will appear in a similar way in older reports.
    - Find how and where `Shares outstanding (shares in issue)` is reported for this company. Use the same pattern to find this information in the other reports.
    - For `Debt payment` analyze the debt structure, what debt the company has and how movements are reported. Use the same pattern in the other reports.
-3. Before proceeding with the other reports:
+
+## User confirmation (Required). Important to request the approval before reading other reports
    - Show all the consolidated statements form the most recent report to the user as tables.
    - Show the extracted finantial data from the most recent report.
    - Provide comments how the data was extraced for this comany.
    - Ask for approval to proceed with the other reports.
-4. For each annual report found, extract the following according to `CLAUDE.md` file:
+
+## Read other reports. Aggregate info and present in the following format according to the `CLAUDE.md` file:
    - Output data that is marked as `###` three sharps under `# Financial report structure` structure.
    - Rows should represent years, columns - metcirs.
    - The most recent year should appear on the bottom.
-5. Note any data gaps, restatements, or fiscal year changes
 
-Be precise with numbers — use the exact figures from filings, not rounded estimates. Flag any line items that required judgment calls.
+## Note any data gaps, restatements, or fiscal year changes
+
+## Save financial data
+   - Save result table into 2 `.csv` files into the `output/` folder.
+   - First one - profit_and_loss.csv with Revenue, EBIT, D&A, Total debt, Excess cash, Diluted shares.
+   - First one - cash_flow.csv with Cash flow from operations, Capex, Debt payment (net).
 
 ---
 
