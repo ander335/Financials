@@ -27,4 +27,6 @@ os.makedirs("output", exist_ok=True)
 csv_filename = os.path.join("output", f"{ticker}_stock_data.csv")
 close.to_csv(csv_filename, float_format="%.2f")
 
+currency = yf.Ticker(ticker).info.get("currency", "unknown")
+print(f"Currency: {currency}")
 print(f"Data saved to {csv_filename}")

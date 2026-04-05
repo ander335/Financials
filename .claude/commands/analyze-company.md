@@ -56,6 +56,7 @@
 ## Extract historical prices data
    - Run `historical_prices.py` with the company ticker and the number of years `AVAILABLE_PERIOD` + 1 as arguments.
    - Example: `python historical_prices.py AAPL 13` (where 13 = `AVAILABLE_PERIOD` years of data + 1 for margin)
+   - **Important**: The script outputs the `Currency: <currency>`, compare it with the reporting currency. If it's not the same, warn the user about it.
 
 ---
 
