@@ -76,3 +76,4 @@ GitHub Copilot then reads those files and performs the analysis.
 1. Place annual report PDFs in the `reports/` folder
 2. Run: `python analyze_pdf.py` to convert all PDFs, or pass specific filenames to convert only those:
    - `python analyze_pdf.py report1.pdf report2.pdf`
+3. Running the script takes about 1-2 minutes. Wait for it to finish. Do not run any other python commands while it's running.
