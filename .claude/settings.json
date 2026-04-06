@@ -2,8 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python -)",
-      "Bash(python analyze_pdf.py)",
-      "Bash(python historical_prices.py *)"
+      "Bash(python analyze_pdf.py*)",
+      "Bash(python historical_prices.py *)",
+      "Bash(awk *)",
+      "Write(g:\\projects\\Financials\\output\\*)",
+      "Edit(g:\\projects\\Financials\\output\\*)"
     ],
     "additionalDirectories": [
       "G:\\projects\\Financials"

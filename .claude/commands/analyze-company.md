@@ -20,6 +20,11 @@
    - Find how and where `Shares outstanding (shares in issue)` is reported for this company. Use the same pattern to find this information in the other reports.
    - For `Debt payment` analyze the debt structure, what debt the company has and how movements are reported. Use the same pattern in the other reports.
 
+## Extract historical prices data
+   - Run `historical_prices.py` with the company ticker and the number of years `AVAILABLE_PERIOD` + 1 as arguments.
+   - Example: `python historical_prices.py AAPL 13` (where 13 = `AVAILABLE_PERIOD` years of data + 1 for margin)
+   - **Important**: The script outputs the `Currency: <currency>`, compare it with the reporting currency. If it's not the same, warn the user about it.
+
 ## User confirmation (Required). Important to request the approval before reading other reports
    - Show all the consolidated statements from the most recent report to the user as tables.
    - Show the extracted financial data from the most recent report.
@@ -53,22 +58,12 @@
    - First one - profit_and_loss.csv with Revenue, EBIT, D&A, Total debt, Excess cash, Diluted shares.
    - Second one - cash_flow.csv with Cash flow from operations, Capex, Debt payment (net), Dividends.
 
-## Extract historical prices data
-   - Run `historical_prices.py` with the company ticker and the number of years `AVAILABLE_PERIOD` + 1 as arguments.
-   - Example: `python historical_prices.py AAPL 13` (where 13 = `AVAILABLE_PERIOD` years of data + 1 for margin)
-   - **Important**: The script outputs the `Currency: <currency>`, compare it with the reporting currency. If it's not the same, warn the user about it.
-
 ---
 
 ## How to use analyze_pdf.py
 
 `analyze_pdf.py` extracts text from PDFs and saves it to `output/` as `.txt` files.
 Claude Code then reads those files and performs the analysis.
-
-**Setup (one-time)**
-```bash
-pip install pypdf
-```
 
 **Run**
 1. Place annual report PDFs in the `reports/` folder

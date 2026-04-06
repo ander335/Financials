@@ -42,3 +42,4 @@
 - It can be either found in `Consolidated Income statement`
 - Or in a separate report section `Earnings per share`. Can also appear as `Loss per share` in case there is no profit for the company.
 - Or it can be a separate table that displays shares outstanding over years.
+- Report the number in millions.
