@@ -6,16 +6,16 @@ to a .txt file in the output/ folder, ready for analysis.
 
 Usage:
     pip install pypdf
-    python analyze_pdf.py                          # convert all PDFs in reports/
-    python analyze_pdf.py report1.pdf report2.pdf  # convert specific files only
+    python analyze_pdf.py --folder "reports/"                          # convert all PDFs
+    python analyze_pdf.py --folder "reports/" report1.pdf report2.pdf  # convert specific files
 """
 
+import argparse
 import sys
 from pathlib import Path
 
 import pypdf
 
-REPORTS_DIR = Path(__file__).parent / "reports"
 OUTPUT_DIR = Path(__file__).parent / "output"
 
 
@@ -30,19 +30,29 @@ def extract_text(pdf_path: Path) -> str:
 
 
 def main():
-    if sys.argv[1:]:
+    parser = argparse.ArgumentParser(description="Extract text from annual report PDFs.")
+    parser.add_argument("--folder", required=True, help="Path to the folder containing PDF reports.")
+    parser.add_argument("files", nargs="*", help="Specific PDF filenames to convert (optional).")
+    args = parser.parse_args()
+
+    reports_dir = Path(args.folder)
+    if not reports_dir.is_dir():
+        print(f"Folder not found: {reports_dir}")
+        sys.exit(1)
+
+    if args.files:
         pdf_files = []
-        for name in sys.argv[1:]:
-            p = REPORTS_DIR / name
+        for name in args.files:
+            p = reports_dir / name
             if not p.exists():
                 print(f"File not found: {p}")
                 sys.exit(1)
             pdf_files.append(p)
     else:
-        pdf_files = sorted(REPORTS_DIR.glob("*.pdf"))
+        pdf_files = sorted(reports_dir.glob("*.pdf"))
 
     if not pdf_files:
-        print(f"No PDF files found in {REPORTS_DIR}")
+        print(f"No PDF files found in {reports_dir}")
         sys.exit(1)
 
     OUTPUT_DIR.mkdir(exist_ok=True)

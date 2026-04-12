@@ -1,4 +1,5 @@
-# Analyze annual reports found in the `reports/` subfolder of this project.
+# Analyze annual reports found in the reports folder.
+- REPORTS_FOLDER=`C:\Users\user\Downloads\`
 
 # General
 - Be precise with numbers — use the exact figures from filings, not rounded estimates. Flag any line items that required judgment calls.
@@ -6,8 +7,8 @@
 # Steps
 ## Read `CLAUDE.md` file for context
 
-## List all files in the `reports/` folder
-   - List files in the `output/`, for the `.pdf` reports that are not yet converted to text use `analyze_pdf.py`. Convert only the files that are not yet present in the `output/` folder, provide them as the script arguments.
+## List all files in the `REPORTS_FOLDER` folder
+   - List files in the `./output/`, for the `.pdf`, `.htm`, `.html`, and `.txt` reports that are not yet converted to text use `analyze_pdf.py`. Convert only the files that are not yet present in the `output/` folder, provide them as the script arguments.
    - Do not analyze reports at this stage.
    - Triage the reports by their name. There could be annual reports and 1 quater report (optional).
    - Analyze how much financial data is presented. Example:
@@ -43,8 +44,9 @@
    - All balance sheet data should be taken from the quater report.
    - For the `Consolidated Income statement` and `Consolidated statement of cash flow` use the TTM approach to get the numbers that can be compared with the previous year:
       - Locate statements that include the most fiscal data. Example:
-         - For 3Q report - Look for `Nine Months Ended`
-         - For 2Q or interim report - Look for `Six Months Ended` or `Half-year Ended`
+         - For Q3 report - Look for `Nine Months Ended`
+         - For Q2 or interim report - Look for `Six Months Ended` or `Half-year Ended`
+         - If in Q2 or Q3 reports only the corresponding period is reported, warn user about it. In this case all available quarter reports need to be provided.
       - Calculate `the difference` with the same period previous year. Example:
          - Revenue Nine Months Ended Dec 31, 2025 - 13,031.7
          - Revenue Nine Months Ended Dec 31, 2024 - 11,651.2
@@ -66,7 +68,8 @@
 Claude Code then reads those files and performs the analysis.
 
 **Run**
-1. Place annual report PDFs in the `reports/` folder
-2. Run: `python analyze_pdf.py` to convert all PDFs, or pass specific filenames to convert only those:
-   - `python analyze_pdf.py report1.pdf report2.pdf`
+1. Place annual report PDFs in the `REPORTS_FOLDER` folder
+2. Run with `--folder` pointing to `REPORTS_FOLDER` to convert all PDFs, or pass specific filenames to convert only those:
+   - `python analyze_pdf.py --folder "REPORTS_FOLDER"`
+   - `python analyze_pdf.py --folder "REPORTS_FOLDER" report1.pdf report2.pdf`
 3. Running the script takes about 1-2 minutes. Wait for it to finish. Do not run any other python commands while it's running.

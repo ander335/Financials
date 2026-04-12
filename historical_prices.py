@@ -22,9 +22,10 @@ data = yf.download(ticker, start=start_date.strftime('%Y-%m-%d'), end=end_date.s
 # Keep only Close price
 close = data[["Close"]].droplevel(1, axis=1) if isinstance(data.columns, pd.MultiIndex) else data[["Close"]]
 
-# Save the data to output/ folder
-os.makedirs("output", exist_ok=True)
-csv_filename = os.path.join("output", f"{ticker}_stock_data.csv")
+# Save the data to output/ folder (relative to this script)
+output_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
+os.makedirs(output_dir, exist_ok=True)
+csv_filename = os.path.join(output_dir, f"{ticker}_stock_data.csv")
 close.to_csv(csv_filename, float_format="%.2f")
 
 currency = yf.Ticker(ticker).info.get("currency", "unknown")
