@@ -5,24 +5,29 @@ Source: Frankfurter API (api.frankfurter.dev) — free, no API key required.
 Data backed by ECB and other central banks.
 
 Usage:
-    python fx_rates.py FROM TO [--years N] [--year-end MONTH]
+    python fx_rates.py FROM TO [--years N] [--year-end MONTH] [--spot-date DATE]
 
 Arguments:
-    FROM          Base currency ISO code (e.g. JPY)
-    TO            Quote currency ISO code (e.g. USD)
-    --years N     Number of fiscal years to retrieve (default: 12)
-    --year-end M  Fiscal year-end month, 1-12 (default: 12 = December)
+    FROM              Base currency ISO code (e.g. JPY)
+    TO                Quote currency ISO code (e.g. USD)
+    --years N         Number of fiscal years to retrieve (default: 12)
+    --year-end M      Fiscal year-end month, 1-12 (default: 12 = December)
+    --spot-date DATE  Extra spot rate for a specific date (YYYY-MM-DD), e.g. Q3 balance sheet date.
+                      Looks up the rate on that date (or the nearest preceding trading day).
+                      Appended to the output CSV as a separate row with fiscal_year="spot".
 
 Examples:
     python fx_rates.py JPY USD
-    python fx_rates.py JPY USD --year-end 3        # March year-end (Toyota, Sony…)
-    python fx_rates.py GBP USD --year-end 6        # June year-end
+    python fx_rates.py JPY USD --year-end 3                        # March year-end (Toyota, Sony…)
+    python fx_rates.py JPY USD --year-end 3 --spot-date 2025-12-31 # + Q3 balance sheet rate
+    python fx_rates.py GBP USD --year-end 6                        # June year-end
     python fx_rates.py EUR JPY --years 15
 
 Output:
     output/fx_FROM_TO[_FYMMM].csv  with columns: fiscal_year, period, average_rate, year_end_rate
     fiscal_year = calendar year in which the fiscal year ends
     year_end_rate = rate on the last available trading day of the fiscal year
+    spot row: fiscal_year="spot:<DATE>", period=DATE, average_rate=N/A (0), year_end_rate=spot rate
 """
 
 import argparse
@@ -122,12 +127,17 @@ def main():
         "--year-end", type=int, default=12, dest="year_end", metavar="MONTH",
         help="Fiscal year-end month 1-12 (default: 12 = December)"
     )
+    parser.add_argument(
+        "--spot-date", dest="spot_date", metavar="DATE", default=None,
+        help="Extra spot rate for a specific date YYYY-MM-DD (e.g. Q3 balance sheet date)"
+    )
     args = parser.parse_args()
 
     from_ccy = args.from_ccy.upper()
     to_ccy = args.to_ccy.upper()
     year_end = args.year_end
     years = args.years
+    spot_date = args.spot_date
 
     if not 1 <= year_end <= 12:
         print("Error: --year-end must be between 1 and 12", file=sys.stderr)
@@ -147,6 +157,9 @@ def main():
 
     # Fetch start: beginning of the first fiscal period
     fetch_start = periods[0][2]  # start date of first period
+    # If a spot date is requested and it's earlier than the first FY start, extend fetch range
+    if spot_date and spot_date < fetch_start:
+        fetch_start = spot_date
     fetch_end = today.isoformat()
 
     year_end_label = MONTH_ABBR[year_end]
@@ -157,13 +170,35 @@ def main():
     data = fetch_daily_rates(from_ccy, to_ccy, fetch_start, fetch_end)
     rows = aggregate(data, to_ccy, periods)
 
+    # Spot-date lookup: find the rate on or before the requested date
+    spot_row = None
+    if spot_date:
+        all_rates: dict[str, float] = {
+            d: v[to_ccy] for d, v in data["rates"].items()
+        }
+        candidates = sorted(d for d in all_rates if d <= spot_date)
+        if candidates:
+            actual_date = candidates[-1]
+            spot_rate = all_rates[actual_date]
+            note = f" (nearest trading day: {actual_date})" if actual_date != spot_date else ""
+            spot_row = {
+                "fiscal_year": f"spot:{spot_date}",
+                "period": actual_date,
+                "average_rate": 0,
+                "year_end_rate": round(spot_rate, 6),
+            }
+            print(f"\nSpot rate on {spot_date}{note}: {spot_rate:.6f}")
+        else:
+            print(f"\nWarning: no rate data available on or before {spot_date}", file=sys.stderr)
+
     suffix = f"_FY{year_end_label}" if year_end != 12 else ""
     output_path = f"output/fx_{from_ccy}_{to_ccy}{suffix}.csv"
 
+    all_rows = rows + ([spot_row] if spot_row else [])
     with open(output_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["fiscal_year", "period", "average_rate", "year_end_rate"])
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(all_rows)
 
     # Console table
     print(f"\n{from_ccy}/{to_ccy} — Fiscal year ending {year_end_label}")

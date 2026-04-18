@@ -4,9 +4,12 @@
       "Bash(python -)",
       "Bash(python analyze_pdf.py*)",
       "Bash(python historical_prices.py *)",
+      "Bash(python fx_rates.py*)",
+      "Bash(python verify_fx.py*)",
       "Bash(awk *)",
       "Write(g:\\projects\\Financials\\output\\*)",
-      "Edit(g:\\projects\\Financials\\output\\*)"
+      "Edit(g:\\projects\\Financials\\output\\*)",
+      "Read(//c/Users/user/Downloads/**)"
     ],
     "additionalDirectories": [
       "G:\\projects\\Financials"
