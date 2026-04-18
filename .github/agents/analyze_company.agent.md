@@ -15,7 +15,7 @@ tools: ['read', 'execute', 'edit', 'todo']
 ## Read `CLAUDE.md` file in the project root for context
 
 ## List all files in the `REPORTS_FOLDER` folder
-   - List files in the `./output/` subfolder of the current folder, for the `.pdf`, `.htm`, `.html`, and `.txt` reports that are not yet converted to text use `analyze_pdf.py`. Convert only the files that are not yet present in the `./output/` folder, provide them as the script arguments.
+   - List files in the `./output/`, for the `.pdf`, `.htm`, `.html`, and `.txt` reports that are not yet converted to text use `analyze_pdf.py`. Convert only the files that are not yet present in the `output/` folder, provide them as the script arguments.
    - Do not analyze reports at this stage.
    - Triage the reports by their name. There could be annual reports and 1 quarter report (optional).
    - Analyze how much financial data is presented. Example:
@@ -32,6 +32,11 @@ tools: ['read', 'execute', 'edit', 'todo']
    - Run `historical_prices.py` with the company ticker and the number of years `AVAILABLE_PERIOD` + 1 as arguments.
    - Example: `python historical_prices.py AAPL 13` (where 13 = `AVAILABLE_PERIOD` years of data + 1 for margin)
    - **Important**: The script outputs the `Currency: <currency>`, compare it with the reporting currency. If it's not the same, warn the user about it.
+   - **ADR check**: If the listing exchange is not the company's home exchange (e.g. a Japanese company listed on NYSE, or a European company listed on NYSE/NASDAQ), the ticker likely represents an ADR. In that case:
+     - Determine the ADR ratio (number of ordinary shares per ADR) from the company's ADR prospectus or investor relations page.
+     - Cross-check: take the most recent year-end share price from the price data, multiply by (shares_outstanding ÷ ADR_ratio), and compare the implied market cap against a known reference (e.g. reported market cap, or cross-check with the home-exchange share price × full share count). The ratio is correct when the implied market caps align.
+     - **⚠ WARNING**: Display a warning to the user stating the ADR ratio found and that diluted shares will be divided by that ratio in all output files.
+     - Store the ADR ratio as `ADR_RATIO` and divide all `diluted_shares` values by `ADR_RATIO` before saving to CSV.
 
 ## User confirmation (Required). Important to request the approval before reading other reports
    - Show all the consolidated statements from the most recent report to the user as tables.
@@ -63,20 +68,36 @@ tools: ['read', 'execute', 'edit', 'todo']
 ## Note any data gaps, restatements, or fiscal year changes
 
 ## Save financial data
-   - Save result table into 2 `.csv` files into the `./output/` folder.
+   - Save result table into 2 `.csv` files into the `output/` folder.
    - First one - profit_and_loss.csv with Revenue, EBIT, D&A, Total debt, Excess cash, Diluted shares.
    - Second one - cash_flow.csv with Cash flow from operations, Capex, Debt payment (net), Dividends.
+
+## Currency conversion (Optional — only when reporting currency ≠ price currency)
+   If a mismatch was detected between the reporting currency and the stock price currency (e.g. JPY reports but USD prices):
+   - Run `python fx_rates.py FROM TO --year-end MONTH` using the company's fiscal year-end month.
+     - Add `--spot-date YYYY-MM-DD` if a TTM row exists, where the date is the quarter-end balance sheet date (e.g. `--spot-date 2025-12-31` for a Q3 March-year-end company).
+     - Example: `python fx_rates.py JPY USD --year-end 3 --spot-date 2025-12-31`
+   - Use the resulting `output/fx_FROM_TO_FY<MMM>.csv` (columns: `average_rate`, `year_end_rate`) as follows:
+     - **Income statement & cash flow items** (Revenue, EBIT, D&A, CFO, Capex, Debt payment, Dividends): multiply by the **average_rate** for the matching fiscal year.
+     - **Balance sheet items** (Total debt, Excess cash): multiply by the **year_end_rate** for the matching fiscal year.
+     - **TTM balance sheet**: use the spot rate returned by `--spot-date` (the quarter-end date rate).
+     - **TTM income/CF**: use the average rate of the current in-progress fiscal year (the row marked with `*` in the FX table).
+     - **Shares outstanding**: no conversion needed (unit count, not monetary).
+   - Rename the original files to `profit_and_loss_<original_currency_lowercase>.csv` and `cash_flow_<original_currency_lowercase>.csv`.
+   - Save two additional converted files: `profit_and_loss_<target_currency_lowercase>.csv` and `cash_flow_<target_currency_lowercase>.csv`.
+   - All converted monetary values should be rounded to the nearest whole number (same unit as original, e.g. millions).
+   - Run `python verify_fx.py` to verify the converted files are correct. Fix any reported mismatches before proceeding.
 
 ---
 
 ## How to use analyze_pdf.py
 
-`analyze_pdf.py` extracts text from PDFs and saves it to `./output/` as `.txt` files.
+`analyze_pdf.py` extracts text from PDFs and saves it to `output/` as `.txt` files.
 GitHub Copilot then reads those files and performs the analysis.
 
 **Run**
 1. Place annual report PDFs in the `REPORTS_FOLDER` folder
-2. Run with `--folder` pointing to `REPORTS_FOLDER` to convert all files, or pass specific filenames to convert only those:
-   - `python analyze_pdf.py --folder "<REPORTS_FOLDER>"`
-   - `python analyze_pdf.py --folder "<REPORTS_FOLDER>" report1.pdf report2.pdf`
+2. Run with `--folder` pointing to `REPORTS_FOLDER` to convert all PDFs, or pass specific filenames to convert only those:
+   - `python analyze_pdf.py --folder "REPORTS_FOLDER"`
+   - `python analyze_pdf.py --folder "REPORTS_FOLDER" report1.pdf report2.pdf`
 3. Running the script takes about 1-2 minutes. Wait for it to finish. Do not run any other python commands while it's running.

@@ -67,7 +67,7 @@
 
 ## Currency conversion (Optional — only when reporting currency ≠ price currency)
    If a mismatch was detected between the reporting currency and the stock price currency (e.g. JPY reports but USD prices):
-   - Run `/fx-rates FROM TO --year-end MONTH` using the company's fiscal year-end month.
+   - Run `python fx_rates.py FROM TO --year-end MONTH` using the company's fiscal year-end month.
      - Add `--spot-date YYYY-MM-DD` if a TTM row exists, where the date is the quarter-end balance sheet date (e.g. `--spot-date 2025-12-31` for a Q3 March-year-end company).
      - Example: `python fx_rates.py JPY USD --year-end 3 --spot-date 2025-12-31`
    - Use the resulting `output/fx_FROM_TO_FY<MMM>.csv` (columns: `average_rate`, `year_end_rate`) as follows:
