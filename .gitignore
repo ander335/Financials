@@ -1,3 +1,5 @@
+*.pyc
+
 reports/*.pdf
 reports/*.htm
 output
