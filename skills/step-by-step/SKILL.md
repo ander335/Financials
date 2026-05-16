@@ -16,7 +16,7 @@ Use this skill as an approval gate for AI-facing edits.
 
 ## Approval Requests
 Keep each request short and specific:
-- Show the exact logical block to add, replace, or delete.
+- Show the exact logical block to add, replace, or delete. Show the suggested changes.
 - Ask a clear yes/no approval question.
 
 Do not ask for approval of an outline, plan, full file, or broad editing step.

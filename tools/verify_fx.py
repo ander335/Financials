@@ -5,7 +5,7 @@ from the original currency CSVs using the FX rates file.
 
 Auto-detects the FX file and currency pair from filenames in the output directory.
 
-Usage: python verify_fx.py [output_dir]
+Usage: python tools/verify_fx.py [output_dir]
 Default output_dir: ./output
 
 Exits with code 0 if all values match, 1 if any mismatches are found.
@@ -16,6 +16,7 @@ import glob
 import os
 import re
 import sys
+import argparse
 
 
 def load_csv(path):
@@ -151,7 +152,12 @@ def verify_table(name, orig_rows, conv_rows, fx, spot_rate, ttm_avg,
 
 
 def main():
-    output_dir = sys.argv[1] if len(sys.argv) > 1 else "./output"
+    parser = argparse.ArgumentParser(
+        description="Verify converted currency CSV files against an FX rates file."
+    )
+    parser.add_argument("output_dir", nargs="?", default="./output")
+    args = parser.parse_args()
+    output_dir = args.output_dir
 
     fx_file, pnl_orig_path, cf_orig_path, pnl_conv_path, cf_conv_path, from_cur, to_cur = find_files(output_dir)
 

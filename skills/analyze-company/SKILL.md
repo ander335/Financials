@@ -3,13 +3,20 @@
 Use this skill when extracting financial metrics from public company annual reports, 10-Ks, 20-Fs, equivalent filings, or interim reports.
 
 ## Inputs
-- `REPORTS_FOLDER=C:\Users\user\Downloads\`
-- The company name or ticker may be provided by the user. If not provided, detect it from the reports.
+- Use `REPORTS_FOLDER` from `docs/context_variables.md`.
+- Reports for analysis must be stored in a company-specific subfolder of `REPORTS_FOLDER`.
+- Name the reports subfolder like the company being analyzed, for example `REPORTS_FOLDER/Apple` or `REPORTS_FOLDER/Novo Nordisk`.
+- Save all generated output in a company-specific subfolder of `./output/` named like the company being analyzed, for example `./output/Apple/` or `./output/Novo Nordisk/`.
+- The company name or ticker may be provided by the user. If not provided, detect it from the reports and use that company name for the input and output subfolders.
 
 ## Required Reading
-1. Read `docs/financial_report_structure.md` first for statement descriptions and metric definitions.
+1. Read `docs/context_variables.md` first for shared workflow variables.
+2. Read `docs/financial_report_structure.md` for statement descriptions and metric definitions.
 
 ## General Rules
+- Analyze only reports that already exist in `COMPANY_REPORTS_FOLDER` unless the user explicitly asks to download or collect reports.
+- Do not browse the web, search investor relations pages, or invoke the `download-annual-reports` skill during analysis merely because a company name was provided.
+- If no company-specific reports folder exists, or if the existing folder does not contain analyzable reports, stop and tell the user what is missing. Ask whether they want reports downloaded as a separate step.
 - Extract key financial metrics from public company annual reports for at least the last 10 years when enough reports are available.
 - Reports are normally presented in sequence every 2 years, such as 2025, 2023, etc.
 - The `Consolidated Balance Sheet` is normally disclosed for 2 years in each report. Other statements may be disclosed for 3 years. Consider only the latest 2 years from each report.
@@ -21,10 +28,14 @@ Use this skill when extracting financial metrics from public company annual repo
 ## Workflow
 
 ### Step 1: Inventory Reports
-- List all files in `REPORTS_FOLDER`.
-- List files in `./output/`.
-- For `.pdf`, `.htm`, `.html`, and `.txt` reports that are not yet converted to text, use `analyze_pdf.py`.
-- Convert only files that are not already present in `./output/`; provide those files as script arguments.
+- Determine `COMPANY_REPORTS_FOLDER`, the company-specific subfolder inside `REPORTS_FOLDER`.
+- Determine `COMPANY_OUTPUT_FOLDER`, the company-specific subfolder inside `./output/`.
+- First inspect the existing `COMPANY_REPORTS_FOLDER`. Treat downloaded files in this folder as the source of truth for the analysis.
+- Do not look for additional reports online during this step. Missing years should be noted as data gaps, not silently sourced from the web.
+- List all files in `COMPANY_REPORTS_FOLDER`.
+- List files in `COMPANY_OUTPUT_FOLDER`.
+- For `.pdf`, `.htm`, `.html`, and `.txt` reports that are not yet converted to text, use `tools/analyze_pdf.py`.
+- Convert only files that are not already present in `COMPANY_OUTPUT_FOLDER`; provide those files as script arguments.
 - Do not analyze reports during this inventory step.
 - Triage reports by filename. There may be annual reports and one optional quarter report.
 - Determine how much financial data is available.
@@ -39,8 +50,8 @@ Use this skill when extracting financial metrics from public company annual repo
 - For debt payment, analyze the company's debt structure and how debt movements are reported. Use the same pattern in the other reports.
 
 ### Step 3: Extract Historical Prices
-- Run `historical_prices.py` with the company ticker and `AVAILABLE_PERIOD + 1` as arguments.
-- Example: `python historical_prices.py AAPL 13`, where 13 means `AVAILABLE_PERIOD` years of data plus 1 year for margin.
+- Run `tools/historical_prices.py` with the company ticker, `AVAILABLE_PERIOD + 1`, and `--output COMPANY_OUTPUT_FOLDER` as arguments.
+- Example: `python tools/historical_prices.py AAPL 13 --output "COMPANY_OUTPUT_FOLDER"`, where 13 means `AVAILABLE_PERIOD` years of data plus 1 year for margin.
 - The script outputs `Currency: <currency>`. Compare this with the reporting currency. If they differ, warn the user.
 
 ### Step 4: ADR Check
@@ -81,7 +92,7 @@ Use this skill when extracting financial metrics from public company annual repo
 - Note any data gaps, restatements, or fiscal year changes.
 
 ### Step 9: Save Financial Data
-- Save result tables into 2 `.csv` files in `./output/`.
+- Save result tables into 2 `.csv` files in `COMPANY_OUTPUT_FOLDER`.
 - Save monetary values in millions of the reporting currency. Keep share counts in millions.
 - Save `profit_and_loss.csv` with:
   - Revenue
@@ -99,10 +110,10 @@ Use this skill when extracting financial metrics from public company annual repo
 ### Step 10: Currency Conversion, If Needed
 Use this only when reporting currency differs from price currency.
 
-- Run `python fx_rates.py FROM TO --year-end MONTH` using the company's fiscal year-end month.
+- Run `python tools/fx_rates.py FROM TO --year-end MONTH --output "COMPANY_OUTPUT_FOLDER"` using the company's fiscal year-end month.
 - Add `--spot-date YYYY-MM-DD` if a TTM row exists, where the date is the quarter-end balance sheet date.
-- Example: `python fx_rates.py JPY USD --year-end 3 --spot-date 2025-12-31`.
-- Use the resulting `output/fx_FROM_TO_FY<MMM>.csv`, with columns `average_rate` and `year_end_rate`.
+- Example: `python tools/fx_rates.py JPY USD --year-end 3 --spot-date 2025-12-31 --output "COMPANY_OUTPUT_FOLDER"`.
+- Use the resulting `COMPANY_OUTPUT_FOLDER/fx_FROM_TO_FY<MMM>.csv`, with columns `average_rate` and `year_end_rate`.
 - Income statement and cash flow items use `average_rate`: Revenue, EBIT, D&A, CFO, Capex, Debt payment, Dividends.
 - Balance sheet items use `year_end_rate`: Total debt, Excess cash.
 - TTM balance sheet uses the spot rate returned by `--spot-date`.
@@ -111,14 +122,14 @@ Use this only when reporting currency differs from price currency.
 - Rename original files to `profit_and_loss_<original_currency_lowercase>.csv` and `cash_flow_<original_currency_lowercase>.csv`.
 - Save converted files as `profit_and_loss_<target_currency_lowercase>.csv` and `cash_flow_<target_currency_lowercase>.csv`.
 - Round all converted monetary values to the nearest whole number in the same unit as the original, such as millions.
-- Run `python verify_fx.py` to verify the converted files. Fix any reported mismatches before proceeding.
+- Run `python tools/verify_fx.py "COMPANY_OUTPUT_FOLDER"` to verify the converted files. Fix any reported mismatches before proceeding.
 
-## How To Use `analyze_pdf.py`
+## How To Use `tools/analyze_pdf.py`
 
-`analyze_pdf.py` extracts text from PDFs and saves it to `./output/` as `.txt` files. Agents should read those text files and perform the analysis from them.
+`tools/analyze_pdf.py` extracts text from PDFs and saves it as `.txt` files. Agents should save and read those text files from `COMPANY_OUTPUT_FOLDER`.
 
-1. Place annual report PDFs in `REPORTS_FOLDER`.
-2. Run with `--folder` pointing to `REPORTS_FOLDER` to convert all PDFs, or pass specific filenames to convert only those:
-   - `python analyze_pdf.py --folder "REPORTS_FOLDER"`
-   - `python analyze_pdf.py --folder "REPORTS_FOLDER" report1.pdf report2.pdf`
+1. Place annual report PDFs in the company-specific subfolder inside `REPORTS_FOLDER`.
+2. Run with `--folder` pointing to `COMPANY_REPORTS_FOLDER` and `--output` pointing to `COMPANY_OUTPUT_FOLDER` to convert all PDFs, or pass specific filenames to convert only those:
+   - `python tools/analyze_pdf.py --folder "COMPANY_REPORTS_FOLDER" --output "COMPANY_OUTPUT_FOLDER"`
+   - `python tools/analyze_pdf.py --folder "COMPANY_REPORTS_FOLDER" --output "COMPANY_OUTPUT_FOLDER" report1.pdf report2.pdf`
 3. Running the script takes about 1-2 minutes. Wait for it to finish. Do not run any other Python commands while it is running.

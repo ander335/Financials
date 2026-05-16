@@ -5,7 +5,7 @@ Source: Frankfurter API (api.frankfurter.dev) — free, no API key required.
 Data backed by ECB and other central banks.
 
 Usage:
-    python fx_rates.py FROM TO [--years N] [--year-end MONTH] [--spot-date DATE]
+    python tools/fx_rates.py FROM TO [--years N] [--year-end MONTH] [--spot-date DATE] [--output DIR]
 
 Arguments:
     FROM              Base currency ISO code (e.g. JPY)
@@ -15,16 +15,17 @@ Arguments:
     --spot-date DATE  Extra spot rate for a specific date (YYYY-MM-DD), e.g. Q3 balance sheet date.
                       Looks up the rate on that date (or the nearest preceding trading day).
                       Appended to the output CSV as a separate row with fiscal_year="spot".
+    --output DIR      Folder where the FX CSV should be saved (default: output).
 
 Examples:
-    python fx_rates.py JPY USD
-    python fx_rates.py JPY USD --year-end 3                        # March year-end (Toyota, Sony…)
-    python fx_rates.py JPY USD --year-end 3 --spot-date 2025-12-31 # + Q3 balance sheet rate
-    python fx_rates.py GBP USD --year-end 6                        # June year-end
-    python fx_rates.py EUR JPY --years 15
+    python tools/fx_rates.py JPY USD
+    python tools/fx_rates.py JPY USD --year-end 3                        # March year-end
+    python tools/fx_rates.py JPY USD --year-end 3 --spot-date 2025-12-31 # + Q3 balance sheet rate
+    python tools/fx_rates.py GBP USD --year-end 6                        # June year-end
+    python tools/fx_rates.py EUR JPY --years 15
 
 Output:
-    output/fx_FROM_TO[_FYMMM].csv  with columns: fiscal_year, period, average_rate, year_end_rate
+    <output>/fx_FROM_TO[_FYMMM].csv  with columns: fiscal_year, period, average_rate, year_end_rate
     fiscal_year = calendar year in which the fiscal year ends
     year_end_rate = rate on the last available trading day of the fiscal year
     spot row: fiscal_year="spot:<DATE>", period=DATE, average_rate=N/A (0), year_end_rate=spot rate
@@ -38,6 +39,7 @@ import sys
 import urllib.request
 import urllib.error
 from datetime import date
+from pathlib import Path
 
 MONTH_ABBR = {
     1: "JAN", 2: "FEB", 3: "MAR", 4: "APR", 5: "MAY", 6: "JUN",
@@ -131,6 +133,7 @@ def main():
         "--spot-date", dest="spot_date", metavar="DATE", default=None,
         help="Extra spot rate for a specific date YYYY-MM-DD (e.g. Q3 balance sheet date)"
     )
+    parser.add_argument("--output", default="output", help="Folder where the FX CSV should be saved.")
     args = parser.parse_args()
 
     from_ccy = args.from_ccy.upper()
@@ -138,6 +141,7 @@ def main():
     year_end = args.year_end
     years = args.years
     spot_date = args.spot_date
+    output_dir = Path(args.output)
 
     if not 1 <= year_end <= 12:
         print("Error: --year-end must be between 1 and 12", file=sys.stderr)
@@ -192,7 +196,8 @@ def main():
             print(f"\nWarning: no rate data available on or before {spot_date}", file=sys.stderr)
 
     suffix = f"_FY{year_end_label}" if year_end != 12 else ""
-    output_path = f"output/fx_{from_ccy}_{to_ccy}{suffix}.csv"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"fx_{from_ccy}_{to_ccy}{suffix}.csv"
 
     all_rows = rows + ([spot_row] if spot_row else [])
     with open(output_path, "w", newline="") as f:

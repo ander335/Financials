@@ -2,10 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(python -)",
-      "Bash(python analyze_pdf.py*)",
-      "Bash(python historical_prices.py *)",
-      "Bash(python fx_rates.py*)",
-      "Bash(python verify_fx.py*)",
+      "Bash(python tools/analyze_pdf.py*)",
+      "Bash(python tools/historical_prices.py *)",
+      "Bash(python tools/fx_rates.py*)",
+      "Bash(python tools/verify_fx.py*)",
       "Bash(awk *)",
       "Write(g:\\projects\\Financials\\output\\*)",
       "Edit(g:\\projects\\Financials\\output\\*)",
