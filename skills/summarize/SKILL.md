@@ -7,7 +7,7 @@ description: Summarize prepared financial CSV files from a company-specific ./ou
 
 Use this skill when a company-specific folder already exists under `./output/` with prepared financial CSV files.
 
-This skill must not read annual reports, PDFs, filing text, or web sources. It summarizes and transfers the prepared statement data from `./output/<Company>/` into the XLSM template defined by `TEMPLATE_XLSM_PATH` in `docs/context_variables.md`.
+This skill must not read annual reports, PDFs, filing text, or web sources. It summarizes and transfers the prepared statement data from `./output/<Company>/` into the XLSM template defined by `TEMPLATE_XLSM_PATH` in `docs/context_variables.local.md` when present; otherwise use `docs/context_variables.md`.
 
 ## Required Skill
 
@@ -15,7 +15,8 @@ Use `$excel-automation` for all workbook inspection, copying, population, valida
 
 ## Inputs
 
-- Read `docs/context_variables.md` first.
+- Read `docs/context_variables.md` first, then read
+  `docs/context_variables.local.md` when present and prefer those local values.
 - Use `TEMPLATE_XLSM_PATH` as the source workbook template.
 - Use `STOCKS_TARGET_FOLDER` as the root folder for result workbooks.
 - Determine `COMPANY_OUTPUT_FOLDER` as `./output/<Company>/`.

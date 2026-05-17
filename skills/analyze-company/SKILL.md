@@ -3,14 +3,17 @@
 Use this skill when extracting financial metrics from public company annual reports, 10-Ks, 20-Fs, equivalent filings, or interim reports.
 
 ## Inputs
-- Use `REPORTS_FOLDER` from `docs/context_variables.md`.
+- Use `REPORTS_FOLDER` from `docs/context_variables.local.md` when present;
+  otherwise use `docs/context_variables.md`.
 - Reports for analysis must be stored in a company-specific subfolder of `REPORTS_FOLDER`.
 - Name the reports subfolder like the company being analyzed, for example `REPORTS_FOLDER/Apple` or `REPORTS_FOLDER/Novo Nordisk`.
 - Save all generated output in a company-specific subfolder of `./output/` named like the company being analyzed, for example `./output/Apple/` or `./output/Novo Nordisk/`.
 - The company name or ticker may be provided by the user. If not provided, detect it from the reports and use that company name for the input and output subfolders.
 
 ## Required Reading
-1. Read `docs/context_variables.md` first for shared workflow variables.
+1. Read `docs/context_variables.md` first for shared workflow variable examples,
+   then read `docs/context_variables.local.md` when present and prefer those
+   local values.
 2. Read `docs/financial_report_structure.md` for statement descriptions and metric definitions.
 
 ## General Rules

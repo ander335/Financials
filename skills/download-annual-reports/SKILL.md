@@ -8,7 +8,9 @@ description: Download annual reports, 10-Ks, 20-Fs, and equivalent yearly filing
 Use this skill to find and save public company annual reports before financial analysis.
 
 ## Required Reading
-1. Read `docs/context_variables.md` first and use `REPORTS_FOLDER` as the destination folder for downloaded reports.
+1. Read `docs/context_variables.md` first, then read
+   `docs/context_variables.local.md` when present and prefer its
+   `REPORTS_FOLDER` as the destination folder for downloaded reports.
 
 ## Inputs
 - Company name, ticker, or investor relations URL from the user.

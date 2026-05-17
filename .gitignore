@@ -3,3 +3,5 @@
 reports/*.pdf
 reports/*.htm
 output
+
+*.local.md
