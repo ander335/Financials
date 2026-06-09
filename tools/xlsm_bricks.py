@@ -7,6 +7,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as XLImage
+from openpyxl.formula.translate import Translator
 from PIL import Image as PILImage
 
 
@@ -24,6 +25,11 @@ CURRENCY_LOCALE_IDS = {
     "GBP": "809",
     "JPY": "411",
 }
+A1_REFERENCE_RE = re.compile(
+    r"(?:(?:'(?P<quoted_sheet>(?:[^']|'')+)'|(?P<sheet>[A-Za-z_][A-Za-z0-9_.]*))!)?"
+    r"(?P<start_col>\$?[A-Z]{1,3})(?P<start_row>\$?\d+)"
+    r"(?::(?P<end_col>\$?[A-Z]{1,3})(?P<end_row>\$?\d+))?"
+)
 
 
 def open_workbook(path, keep_vba=True):
@@ -278,6 +284,181 @@ def copy_cell_style(source, target):
 def copy_row_styles(ws, source_row, target_row, first_col, last_col):
     for col in range(first_col, last_col + 1):
         copy_cell_style(ws.cell(source_row, col), ws.cell(target_row, col))
+
+
+def insert_styled_rows(ws, row, amount=1, source_row=None, first_col=1, last_col=None):
+    if amount < 1:
+        raise ValueError("amount must be at least 1")
+    last_col = last_col or ws.max_column
+    ws.insert_rows(row, amount)
+
+    if source_row is not None:
+        source_row = source_row + amount if source_row >= row else source_row
+        for target_row in range(row, row + amount):
+            copy_row_styles(ws, source_row, target_row, first_col, last_col)
+            ws.row_dimensions[target_row].height = ws.row_dimensions[source_row].height
+
+
+def translate_row_formulas(ws, source_row, target_row, first_col=1, last_col=None):
+    last_col = last_col or ws.max_column
+    for column in range(first_col, last_col + 1):
+        source = ws.cell(source_row, column)
+        if isinstance(source.value, str) and source.value.startswith("="):
+            target = ws.cell(target_row, column)
+            target.value = Translator(
+                source.value,
+                origin=source.coordinate,
+            ).translate_formula(target.coordinate)
+
+
+def formula_row_references(formula):
+    references = []
+    for match in A1_REFERENCE_RE.finditer(formula):
+        start_row = int(match.group("start_row").replace("$", ""))
+        end_row_text = match.group("end_row")
+        end_row = int(end_row_text.replace("$", "")) if end_row_text else start_row
+        quoted_sheet = match.group("quoted_sheet")
+        references.append(
+            {
+                "sheet": quoted_sheet.replace("''", "'") if quoted_sheet else match.group("sheet"),
+                "min_row": min(start_row, end_row),
+                "max_row": max(start_row, end_row),
+                "reference": match.group(0),
+            }
+        )
+    return references
+
+
+def find_formulas_referencing_rows(
+    wb,
+    min_row,
+    max_row,
+    target_sheet=None,
+    search_sheets=None,
+):
+    matches = []
+    sheet_names = search_sheets or wb.sheetnames
+    for sheet_name in sheet_names:
+        ws = wb[sheet_name]
+        for row in ws.iter_rows():
+            for cell in row:
+                formula = cell.value
+                if not isinstance(formula, str) or not formula.startswith("="):
+                    continue
+                for reference in formula_row_references(formula):
+                    reference_sheet = reference["sheet"] or sheet_name
+                    if target_sheet and reference_sheet != target_sheet:
+                        continue
+                    if reference["max_row"] < min_row or reference["min_row"] > max_row:
+                        continue
+                    matches.append(
+                        {
+                            "sheet": sheet_name,
+                            "cell": cell.coordinate,
+                            "formula": formula,
+                            "reference": reference,
+                        }
+                    )
+    return matches
+
+
+def replace_formula_references(wb, replacements, sheets=None):
+    changes = []
+    for sheet_name in sheets or wb.sheetnames:
+        ws = wb[sheet_name]
+        for row in ws.iter_rows():
+            for cell in row:
+                formula = cell.value
+                if not isinstance(formula, str) or not formula.startswith("="):
+                    continue
+                updated = formula
+                for old_reference, new_reference in replacements.items():
+                    updated = updated.replace(old_reference, new_reference)
+                if updated != formula:
+                    cell.value = updated
+                    changes.append(
+                        {
+                            "sheet": sheet_name,
+                            "cell": cell.coordinate,
+                            "old_formula": formula,
+                            "new_formula": updated,
+                        }
+                    )
+    return changes
+
+
+def compare_metric_records(expected, actual, tolerances=None, fields=None):
+    tolerances = tolerances or {}
+    fields = fields or sorted(set(expected) | set(actual))
+    mismatches = []
+
+    for field in fields:
+        expected_value = expected.get(field)
+        actual_value = actual.get(field)
+        tolerance = tolerances.get(field, 0)
+
+        if expected_value is None or actual_value is None:
+            matches = expected_value == actual_value
+        elif isinstance(expected_value, (int, float)) and isinstance(actual_value, (int, float)):
+            matches = math.isclose(
+                expected_value,
+                actual_value,
+                rel_tol=0,
+                abs_tol=tolerance,
+            )
+        else:
+            matches = expected_value == actual_value
+
+        if not matches:
+            mismatches.append(
+                {
+                    "field": field,
+                    "expected": expected_value,
+                    "actual": actual_value,
+                    "tolerance": tolerance,
+                }
+            )
+
+    return mismatches
+
+
+def scan_broken_formula_references(wb, sheets=None):
+    matches = []
+    for sheet_name in sheets or wb.sheetnames:
+        ws = wb[sheet_name]
+        for row in ws.iter_rows():
+            for cell in row:
+                formula = cell.value
+                if isinstance(formula, str) and formula.startswith("=") and "#REF!" in formula.upper():
+                    matches.append(
+                        {
+                            "sheet": sheet_name,
+                            "cell": cell.coordinate,
+                            "formula": formula,
+                        }
+                    )
+    return matches
+
+
+def missing_years(years):
+    normalized = sorted(set(int(year) for year in years))
+    if len(normalized) < 2:
+        return []
+    return [
+        year
+        for year in range(normalized[0], normalized[-1] + 1)
+        if year not in normalized
+    ]
+
+
+def classify_period_rows(ws, min_row, max_row, classifiers):
+    matches = []
+    for row in range(min_row, max_row + 1):
+        for category, classifier in classifiers.items():
+            if classifier(ws, row):
+                matches.append({"row": row, "category": category})
+                break
+    return matches
 
 
 def set_recalculate_on_open(wb):
