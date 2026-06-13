@@ -8,6 +8,10 @@ description: Use when the user asks to rebuild a company financial workbook from
 Use `$download-annual-reports`, `$extract-financial-data`, and `$excel-automation`. The existing company XLSM is a **data source only** — the output workbook is built fresh from `TEMPLATE_XLSM_PATH`. Never modify or overwrite an existing workbook.
 The output workbook must conform to `docs/financial_summary_structure.md`.
 
+## Absolute Prohibition on Python Scripts
+
+**Never write, generate, or execute a Python script or temporary file to interact with any workbook.** All Excel operations — reading cells, writing values, inserting rows, copying data between workbooks, applying formats, scanning formulas — must be performed by calling the utility scripts from `$excel-automation` directly (e.g. `inspect_xlsm.py`, `dump_xlsm_sheet.py`, `set_workbook_cells`, `write_mapped_rows`, etc.) with the appropriate arguments. Data transfer from the source workbook to the output copy is done by reading cell values through those utilities and writing them through the same utilities — not by authoring a helper script that wraps them.
+
 ## Locate Inputs
 
 Read `TEMPLATE_XLSM_PATH` and `STOCKS_TARGET_FOLDER` from `docs/context_variables.local.md` when present; otherwise use `docs/context_variables.md`. Locate the most recent `.xlsm` file in `STOCKS_TARGET_FOLDER/<Company>/`, excluding lock files, backups, and previously generated files for the same target year — this is the source workbook. Use an explicit source path when the user provides one.
@@ -43,7 +47,7 @@ Do not infer mappings while writing data. Complete the template map before creat
 
 ## Create Output Copy from Template
 
-Use PowerShell `Copy-Item -LiteralPath` on Windows or `cp --` on Unix-like systems. Do not create a Python tool or script for copying.
+Use PowerShell `Copy-Item -LiteralPath` on Windows or `cp --` on Unix-like systems.
 
 Confirm the template exists and stop if the output already exists. Name the copy `<Company>_<LatestCompletedFiscalYear>.xlsm` in `STOCKS_TARGET_FOLDER/<Company>/`, where `<LatestCompletedFiscalYear>` is the newest completed fiscal year across source and any newly downloaded data. Make all workbook changes only in this copy.
 
@@ -68,7 +72,7 @@ Create explicit records for every period to be written (all historical years fro
 - An explicit metric-to-column mapping.
 - Whether the row value is read from the source XLSM or from a freshly extracted CSV.
 
-Record the completed annual endpoint, first forecast year, forecast anchor row, and every dependent section requiring adjustment after population. Keep this specification in agent working context. Do not create a company-specific Python script.
+Record the completed annual endpoint, first forecast year, forecast anchor row, and every dependent section requiring adjustment after population. Keep this specification in agent working context.
 
 ## Populate All Historical Data
 
@@ -78,7 +82,7 @@ For new periods not present in the source workbook, write from the freshly extra
 
 Use `write_formulas` for formulas that repeat across contiguous period rows. Use `set_workbook_cells` for isolated values, formulas, and exceptions across worksheets. Review every change returned by `set_workbook_cells`.
 
-Do not create company-specific population functions. Derive each mapping from the inspected workbook structure.
+Derive each mapping from the inspected workbook structure.
 
 ## Add TTM/Interim Row
 
@@ -126,7 +130,7 @@ Verify the year sequence is contiguous and the EBITDA chain has no gaps before s
 
 ## Update Dependent Formulas
 
-Use the existing formula tools through `$excel-automation`; do not create a company-specific formula-update utility.
+Use the existing formula tools through `$excel-automation`.
 
 1. Use `translate_row_formulas` when copying formulas from an existing period row to a newly inserted row. Review the translated formulas before continuing.
 2. Use `find_formulas_referencing_rows` after determining the expansion range and again after inserting rows. Search every dependent worksheet, including summary, forecast, result, valuation, and IRR sheets.
