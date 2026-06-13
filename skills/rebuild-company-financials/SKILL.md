@@ -111,19 +111,16 @@ Perform workbook changes in this order:
 
 ## Update Summary Row Formulas
 
-Span every formula range from the first to the last completed fiscal year row; exclude the TTM/interim row. Apply CAGR or average per metric as specified in `financial_summary_structure.md`. For the recent CAGR row, pick a 3–5 year window ending at the latest completed year, avoiding endpoints distorted by exceptional values; record the chosen window.
+Apply CAGR or average per metric and CAGR window as specified in `financial_summary_structure.md`.
 
 ## Update Forecast Formulas
 
-Keep forecasts anchored to the latest completed annual period. When interim or TTM data exists for the first forecast year, adjust that year's growth assumption so applying it to the latest annual value produces a forecast close to the interim or TTM value within the workbook's displayed precision.
-
-The forecast section is a **chained sequence**: each row's EBITDA and share-count formulas reference the previous row, and each row's year label increments from the row above. After any row insertion, rewrite the entire forecast section — every row from the first forecast year through the last — using `set_workbook_cells`. Construct each formula from the final row numbers. Never assume openpyxl preserved the chain correctly.
+Follow the forecast chain structure and growth column rules in `financial_summary_structure.md`. After any row insertion, rewrite the entire forecast section — every row from the first forecast year through the last — using `set_workbook_cells`. Construct each formula from the final row numbers. Never assume openpyxl preserved the chain correctly.
 
 For each forecast row `r` (first forecast row `r0` through last `r_last`):
 - Year: `N{r} = "=N{r-1}+1"` (except first row: `N{r0} = first_forecast_year`)
 - EBITDA: `O{r} = "=O{r-1}*(1+P{r})"` (except first row: `O{r0} = "=F{last_completed}*(1+P{r0})"`)
 - Shares: `R{r} = "=R{r-1}*(1+S{r})"` (except first row: `R{r0} = "=O{last_completed}*(1+S{r0})"`)
-- Growth column: first forecast row (`r0`) = TTM-calibrated value (hardcoded); **second forecast row (`r0+1`) = long-term CAGR reference** (e.g., `=F16`); all subsequent rows = same long-term CAGR reference. Never chain the growth column from `r0` — doing so would propagate the TTM spike into the second year.
 
 Verify the year sequence is contiguous and the EBITDA chain has no gaps before saving.
 
@@ -147,7 +144,7 @@ Confirm every historical year from the source workbook is present and matches th
 
 Use `scan_broken_formula_references`, `missing_years`, and `list_external_links` through `$excel-automation`. Also run `scan_circular_formula_references` across every worksheet.
 
-The circular-reference result must be empty. When a cycle is found:
+The circular-reference scan must confirm conformance with `financial_summary_structure.md` (zero cycles, no iterative-calculation workaround). When a cycle is found:
 
 1. Inspect every formula cell returned for the cycle.
 2. Restore the intended helper sequence, cross-sheet link, or valuation bridge from the pre-rebuild template map.
@@ -161,6 +158,29 @@ Run these validations before saving and again after reopening the output XLSM wi
 ## Sheet Scope
 
 By default, all rebuild, verification, and format-fix work applies only to the **P&L**, **Cash flow**, and **Result** sheets. Do not inspect, update, or repair the ROE or IRR map sheets unless the user explicitly asks for it.
+
+## Visual Verification
+
+After all programmatic checks pass, invoke `$take-screenshots` on the output workbook, targeting the **P&L**, **Cash flow**, and **Result** sheets only.
+
+Once the screenshots are saved, read `docs/financial_summary_structure.md` and inspect every screenshot against each rule. Work through each sheet in turn and check:
+
+1. **Row order** — Data rows (oldest→newest) → TTM/interim row (if present) → blank row → summary row → optional recent-CAGR row → blank row → forecast/valuation section. Any deviation is a violation.
+2. **Blank rows** — Exactly one blank row separates the data/TTM block from the summary block, and exactly one blank row separates the summary block from the forecast section. Extra or missing blank rows are violations.
+3. **TTM/interim label** — If a TTM or interim row is present, its year label must show only the year number with no suffix. A label like "2024 TTM" or "Q3 2024" is a violation.
+4. **Summary row formula type** — For each metric, confirm the cell uses CAGR (for growth metrics: Revenue, EBIT, EBITDA, D&A, Debt, Market Cap, Share count; CFO, CAPEX, Distributed Cash, FCFE, FCFE/share) or average (for ratio/level metrics: EV/EBITDA, Debt/EBITDA, DC/FCF, FCFE Yield, Div Yield, EV/Equity). A mismatched formula type is a violation.
+5. **Number formats** — Percentage columns (growth rates, margins, yields, CAGRs) must display as percentages, not raw decimals. A cell showing "0.12" where "12%" is expected is a violation.
+6. **Label duplication** — Summary row labels (e.g., "Yield:", "Stock Price:") must appear in exactly one column. A label repeated in an adjacent column is a violation.
+7. **Forecast chain** — Verify visually that the first forecast year hardcodes a year value and that subsequent rows increment by one. Any visible gap or non-sequential year is a violation.
+8. **Contiguous annual rows** — All completed fiscal years must appear with no gap rows between them. A missing year or unexpected blank between annual rows is a violation.
+
+For every violation found:
+- State the sheet, row, and column where the violation occurs.
+- Quote the exact rule from `docs/financial_summary_structure.md` that is broken.
+- Apply the fix using the appropriate tool from `$excel-automation` (format correction via `set_workbook_cells` or `apply_currency_number_formats`, row reorder via `insert_styled_rows` / row deletion, label correction via `set_workbook_cells`).
+- Re-run `$take-screenshots` on the affected sheet after fixing to confirm the violation is resolved.
+
+Do not proceed to **Report The Result** until all screenshots are free of violations.
 
 ## Report The Result
 
