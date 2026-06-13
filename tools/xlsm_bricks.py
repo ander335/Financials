@@ -291,7 +291,27 @@ def insert_styled_rows(ws, row, amount=1, source_row=None, first_col=1, last_col
     if amount < 1:
         raise ValueError("amount must be at least 1")
     last_col = last_col or ws.max_column
+
+    # openpyxl's insert_rows shifts cell values but does NOT shift row_dimensions.
+    # Capture heights for all rows at or below the insertion point before inserting,
+    # then rewrite them at their shifted positions afterward.
+    shifted_dims = {
+        r: (ws.row_dimensions[r].height, ws.row_dimensions[r].hidden)
+        for r in list(ws.row_dimensions.keys())
+        if r >= row
+    }
+
     ws.insert_rows(row, amount)
+
+    # Re-apply shifted row dimensions at their new positions.
+    for r in sorted(shifted_dims.keys(), reverse=True):
+        height, hidden = shifted_dims[r]
+        ws.row_dimensions[r + amount].height = height
+        ws.row_dimensions[r + amount].hidden = hidden
+        # Reset the now-vacated slot so newly inserted rows start clean.
+        if r < row + amount:
+            ws.row_dimensions[r].height = None
+            ws.row_dimensions[r].hidden = False
 
     if source_row is not None:
         source_row = source_row + amount if source_row >= row else source_row

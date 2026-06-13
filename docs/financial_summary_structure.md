@@ -1,15 +1,46 @@
-# Execl file structure
-- Describes the result `.xlsm` files formatting and rules. 
+# Excel file structure
+- Describes the result `.xlsm` files formatting and rules.
+
+## Sheets
+
+- The workbook has three primary sheets: **P&L**, **Cash flow**, and **Result**. ROE and IRR map are secondary and not subject to these formatting rules unless explicitly noted.
 
 ## General rules
 
 ### Formatting
-- Columns data such as years, finanacial data, revenue, EBIT, EBITDA, Debt, Market cap, EV, shares outstanding amount, share price, etc. should have the same format, currency, digits amount after floating point, alligning, color, font, etc.
-
-### Growth and Average value
-- There should be a blank raw after the most recent financial data and average and growth numbers.
+- All cells in a given metric column use the same number format, currency symbol, decimal places, alignment, color, and font across all data, summary, and forecast rows.
+- Percentage metrics (growth rates, CAGRs, margins, yields) are formatted as percentage throughout — not as raw decimals.
+- Label text for summary rows (e.g., "Yeild:", "Stock Price:") must appear in exactly one column. Duplicate labels in adjacent columns are not permitted.
 
 ### Years column
-- If TTM data is available, the corresponding year shouldn't contain TTM lable. It should be alligned with the others.
+- If TTM or interim data is available, its row label must show only the year number — no "TTM" or period suffix — and must be aligned and formatted identically to the annual rows.
+
+### Row structure (per data sheet)
+
+Rows appear in this fixed order:
+
+1. **Data rows** — one row per completed fiscal year, oldest to newest. All completed fiscal years must be contiguous with no gaps.
+2. **TTM/interim row** (if present) — immediately after the last completed annual row.
+3. **Blank row** — one blank row after the TTM/interim row (or after the last annual row if no TTM exists).
+4. **Summary row** — one row combining long-term CAGR and average depending on the metric (see below). Spans from the earliest to the latest completed fiscal year. Interim and TTM rows are excluded from this range.
+5. **Recent CAGR row** (optional) — one row showing a shorter-period CAGR, typically a 3–5 year window ending at the latest completed fiscal year. Excludes the TTM/interim row. When exceptional values would distort the window, choose an endpoint that mitigates the spike.
+6. **Blank row** — one blank row after the summary/CAGR rows, before any forecast or valuation section.
+
+### Summary row: CAGR vs. average
+
+The summary row uses **long-term CAGR** for metrics where the growth rate over time is the meaningful measure:
+- P&L: Revenue, EBIT, EBITDA, D&A, Debt, Market Cap, Share count
+- Cash flow: CFO, CAPEX, Distributed Cash, FCFE, FCFE/share
+
+The summary row uses **average** for metrics where the long-term level or ratio is more meaningful than its growth rate:
+- P&L: EV/EBITDA multiple, Debt/EBITDA
+- Cash flow: DC/FCF ratio, FCFE Yield, Div Yield, EV/Equity
+
+### Forecast section
+
+- Forecasts are anchored to the latest completed annual period, not to the TTM row.
+- When a TTM or interim value is available for the first forecast year, that year's growth assumption is calibrated so the forecast is consistent with the TTM/interim value.
+- The year column and the primary metric column form a chain: each row's values reference the row immediately above. No row may hardcode an absolute year or base value that bypasses this chain.
+- The year sequence across forecast rows must be contiguous.
 
 ## P&L

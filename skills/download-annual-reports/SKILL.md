@@ -19,7 +19,7 @@ Use this skill to find and save public company annual reports before financial a
 
 ## Source Rules
 - Use only the company's official investor relations website.
-- Do not use regulator pages, third-party mirrors, search-result document caches, or financial data aggregators as report sources.
+- Do not use regulator pages (SEC EDGAR, Companies House, etc.), third-party mirrors, search-result document caches, or financial data aggregators as report sources. If a web search surfaces a SEC or regulator URL, ignore it and navigate the company's IR page directly instead.
 - If the investor relations website does not provide the requested annual reports, stop and tell the user what was available there.
 
 ## Workflow
@@ -27,7 +27,8 @@ Use this skill to find and save public company annual reports before financial a
 ### Step 1: Resolve Investor Relations Source And Destination
 - Identify the company name to use for the destination subfolder.
 - Create or use `REPORTS_FOLDER\<Company-Name>\`.
-- Locate the company's official investor relations website.
+- List all files already present in `REPORTS_FOLDER\<Company-Name>\` and record the fiscal years they cover. Skip downloading any period for which a file already exists.
+- Use a web search to find the company's official investor relations website URL, then fetch and navigate only pages on that domain. Do not download files linked from regulator or third-party pages found in search results.
 - Use only report links found on that investor relations website.
 
 ### Step 2: Select Reports
