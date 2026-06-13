@@ -12,6 +12,7 @@ This skill must not read annual reports, PDFs, filing text, or web sources. It s
 ## Required Skill
 
 Use `$excel-automation` for all workbook inspection, copying, population, validation, and correction. Do not manipulate `.xlsm` files outside the tools allowed by that skill.
+Result file should be formatted accordingly to the `financial_summary_structure.md` file.
 
 ## Inputs
 

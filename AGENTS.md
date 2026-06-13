@@ -14,3 +14,6 @@ These instructions apply to Codex, Claude Code, GitHub Copilot, and any other co
 - Keep financial extraction precise. Use exact figures from filings, not rounded estimates.
 - Preserve user changes in the working tree. Do not revert unrelated edits.
 - Prefer existing scripts and project conventions over new tooling unless the task requires otherwise.
+
+## Result formatting
+- Result files should be formatted accordingly to the `financial_summary_structure.md` file.

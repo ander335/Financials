@@ -8,6 +8,7 @@ from pathlib import Path
 from openpyxl import load_workbook
 from openpyxl.drawing.image import Image as XLImage
 from openpyxl.formula.translate import Translator
+from openpyxl.utils.cell import column_index_from_string
 from PIL import Image as PILImage
 
 
@@ -440,6 +441,151 @@ def scan_broken_formula_references(wb, sheets=None):
     return matches
 
 
+def scan_circular_formula_references(wb, sheets=None, max_range_cells=10000):
+    sheet_names = sheets or wb.sheetnames
+    formula_cells = {}
+    formula_positions = {}
+    dependencies = {}
+
+    for sheet_name in sheet_names:
+        ws = wb[sheet_name]
+        for row in ws.iter_rows():
+            for cell in row:
+                formula = cell.value
+                if isinstance(formula, str) and formula.startswith("="):
+                    node = (sheet_name, cell.coordinate)
+                    formula_cells[node] = formula
+                    formula_positions[node] = (cell.row, cell.column)
+
+    for node, formula in formula_cells.items():
+        sheet_name, _ = node
+        node_dependencies = set()
+        for match in A1_REFERENCE_RE.finditer(formula):
+            quoted_sheet = match.group("quoted_sheet")
+            reference_sheet = (
+                quoted_sheet.replace("''", "'")
+                if quoted_sheet
+                else match.group("sheet") or sheet_name
+            )
+            if reference_sheet not in sheet_names:
+                continue
+
+            start_col = column_index_from_string(
+                match.group("start_col").replace("$", "")
+            )
+            end_col_text = match.group("end_col")
+            end_col = (
+                column_index_from_string(end_col_text.replace("$", ""))
+                if end_col_text
+                else start_col
+            )
+            start_row = int(match.group("start_row").replace("$", ""))
+            end_row_text = match.group("end_row")
+            end_row = (
+                int(end_row_text.replace("$", ""))
+                if end_row_text
+                else start_row
+            )
+
+            min_col, max_col = sorted((start_col, end_col))
+            min_row, max_row = sorted((start_row, end_row))
+            range_size = (max_col - min_col + 1) * (max_row - min_row + 1)
+            if range_size > max_range_cells:
+                for dependency, (row, column) in formula_positions.items():
+                    if dependency[0] != reference_sheet:
+                        continue
+                    if min_row <= row <= max_row and min_col <= column <= max_col:
+                        node_dependencies.add(dependency)
+                continue
+
+            ws = wb[reference_sheet]
+            for row in range(min_row, max_row + 1):
+                for column in range(min_col, max_col + 1):
+                    dependency = (reference_sheet, ws.cell(row, column).coordinate)
+                    if dependency in formula_cells:
+                        node_dependencies.add(dependency)
+        dependencies[node] = node_dependencies
+
+    index = 0
+    stack = []
+    on_stack = set()
+    indices = {}
+    low_links = {}
+    cycles = []
+
+    def visit(node):
+        nonlocal index
+        indices[node] = index
+        low_links[node] = index
+        index += 1
+        stack.append(node)
+        on_stack.add(node)
+
+        for dependency in dependencies.get(node, ()):
+            if dependency not in indices:
+                visit(dependency)
+                low_links[node] = min(low_links[node], low_links[dependency])
+            elif dependency in on_stack:
+                low_links[node] = min(low_links[node], indices[dependency])
+
+        if low_links[node] != indices[node]:
+            return
+
+        component = []
+        while True:
+            member = stack.pop()
+            on_stack.remove(member)
+            component.append(member)
+            if member == node:
+                break
+
+        is_self_reference = (
+            len(component) == 1
+            and component[0] in dependencies.get(component[0], ())
+        )
+        if len(component) > 1 or is_self_reference:
+            cycles.append(component)
+
+    for node in formula_cells:
+        if node not in indices:
+            visit(node)
+
+    results = []
+    for component in cycles:
+        members = sorted(component)
+        results.append(
+            {
+                "cells": [
+                    {
+                        "sheet": sheet_name,
+                        "cell": cell_ref,
+                        "formula": formula_cells[(sheet_name, cell_ref)],
+                    }
+                    for sheet_name, cell_ref in members
+                ]
+            }
+        )
+    return sorted(
+        results,
+        key=lambda result: (
+            result["cells"][0]["sheet"],
+            result["cells"][0]["cell"],
+        ),
+    )
+
+
+def list_external_links(wb):
+    links = []
+    for index, link in enumerate(getattr(wb, "_external_links", []), start=1):
+        links.append(
+            {
+                "index": index,
+                "file_link": getattr(link, "file_link", None),
+            }
+        )
+    return links
+
+
 def missing_years(years):
     normalized = sorted(set(int(year) for year in years))
     if len(normalized) < 2:
@@ -524,6 +670,25 @@ def write_formulas(ws, formulas_by_col, start_row, row_count):
             ws[f"{column}{row}"] = value
 
 
+def set_workbook_cells(wb, updates):
+    changes = []
+    for sheet_name, cell_updates in updates.items():
+        ws = wb[sheet_name]
+        for cell_ref, new_value in cell_updates.items():
+            cell = ws[cell_ref]
+            old_value = cell.value
+            cell.value = new_value
+            changes.append(
+                {
+                    "sheet": sheet_name,
+                    "cell": cell_ref,
+                    "old_value": old_value,
+                    "new_value": new_value,
+                }
+            )
+    return changes
+
+
 def write_two_column_series(ws, rows, start_row, first_col, second_col, first_spec, second_spec, limit=None):
     source_rows = rows[:limit] if limit else rows
     for row_offset, row in enumerate(source_rows):
@@ -543,3 +708,19 @@ def assert_same_number_format(ws, source_ref, target_refs):
     if mismatches:
         details = "; ".join(f"{ref}: expected {expected!r}, got {actual!r}" for ref, expected, actual in mismatches)
         raise AssertionError(details)
+
+
+def compare_cell_styles(ws, source_ref, target_refs):
+    expected = ws[source_ref].style_id
+    mismatches = []
+    for ref in target_refs:
+        actual = ws[ref].style_id
+        if actual != expected:
+            mismatches.append(
+                {
+                    "cell": ref,
+                    "expected_style_id": expected,
+                    "actual_style_id": actual,
+                }
+            )
+    return mismatches

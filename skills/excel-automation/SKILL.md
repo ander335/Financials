@@ -1,13 +1,16 @@
 ---
 name: excel-automation
-description: Inspect, copy, populate, validate, and repair Excel .xlsm workbooks using the repository tools in ./tools. Use when the user asks to inspect workbook structure, dump sheet ranges, preserve VBA while editing templates, copy CSV data into a workbook, apply formulas or formatting, validate saved XLSM files, or correct workbook automation issues.
+description: Inspect, populate, validate, and repair Excel .xlsm workbooks using the repository tools in ./tools. Use when the user asks to inspect workbook structure, dump sheet ranges, preserve VBA while editing templates, copy CSV data into a workbook, apply formulas or formatting, validate saved XLSM files, or correct workbook automation issues.
 ---
 
 # Excel Automation
 
 Use this skill for controlled `.xlsm` workbook inspection and updates in this repository.
 
-Use only the existing Python tools under `./tools/` for workbook inspection, copying, population, validation, and correction. Preserve VBA, formulas, styles, and workbook structure unless the user explicitly asks to change them.
+Use the existing Python tools under `./tools/` for workbook inspection,
+population, validation, and correction. Use native shell commands for file
+copying when required by the calling workflow. Preserve VBA, formulas, styles,
+and workbook structure unless the user explicitly asks to change them.
 
 ## Tool Map
 
@@ -32,6 +35,12 @@ Use only the existing Python tools under `./tools/` for workbook inspection, cop
 - Supply all row positions, counts, and column boundaries from the calling workflow.
 - This brick does not decide where rows belong or populate their values and formulas.
 
+## Style Validation
+
+- Use `compare_cell_styles` to compare one source cell's style with caller-selected target cells.
+- The function returns cells whose style IDs differ, including expected and actual style IDs.
+- It does not modify styles or decide which cells should match.
+
 ## Formula Translation
 
 - Use `translate_row_formulas` to copy formulas from a caller-selected source row to a target row with relative references translated to the target coordinates.
@@ -49,6 +58,13 @@ Use only the existing Python tools under `./tools/` for workbook inspection, cop
 - Pass an exact mapping of old references to new references.
 - Review the returned old and new formulas before saving the workbook.
 
+## Explicit Cell Updates
+
+- Use `set_workbook_cells` to apply caller-supplied values and formulas to explicit cells across multiple worksheets.
+- Pass updates as `{sheet_name: {cell_reference: value}}`.
+- Review the returned sheet, cell, old value, and new value records before saving.
+- The caller must decide every target cell and value; this tool does not map metrics, periods, or formulas.
+
 ## Metric Reconciliation
 
 - Use `compare_metric_records` to compare caller-supplied metric dictionaries.
@@ -58,7 +74,16 @@ Use only the existing Python tools under `./tools/` for workbook inspection, cop
 ## Formula And Year Validation
 
 - Use `scan_broken_formula_references` to list formula cells containing `#REF!`.
+- Use `scan_circular_formula_references` to detect direct self-references and
+  indirect dependency cycles between formula cells.
+- A clean `scan_broken_formula_references` result does not prove that formulas
+  are cycle-free. Run both checks after structural row or column changes.
 - Use `missing_years` to identify gaps in a caller-supplied collection of completed fiscal years.
+
+## External Link Validation
+
+- Use `list_external_links` to list external workbook relationships without modifying them.
+- The function returns each relationship's index and file-link metadata.
 
 ## Period Row Classification
 
