@@ -8,9 +8,17 @@ description: Use when the user asks to rebuild a company financial workbook from
 Use `$download-annual-reports`, `$extract-financial-data`, and `$excel-automation`. The existing company XLSM is a **data source only** — the output workbook is built fresh from `TEMPLATE_XLSM_PATH`. Never modify or overwrite an existing workbook.
 The output workbook must conform to `docs/financial_summary_structure.md`.
 
-## Absolute Prohibition on Python Scripts
+## Python Script Policy
 
-**Never write, generate, or execute a Python script or temporary file to interact with any workbook.** All Excel operations — reading cells, writing values, inserting rows, copying data between workbooks, applying formats, scanning formulas — must be performed by calling the utility scripts from `$excel-automation` directly (e.g. `inspect_xlsm.py`, `dump_xlsm_sheet.py`, `set_workbook_cells`, `write_mapped_rows`, etc.) with the appropriate arguments. Data transfer from the source workbook to the output copy is done by reading cell values through those utilities and writing them through the same utilities — not by authoring a helper script that wraps them.
+All Excel operations must go through the utilities from `$excel-automation` (`inspect_xlsm.py`, `dump_xlsm_sheet.py`, brick functions from `xlsm_bricks.py`, etc.). Do not write business logic, data transformation, or multi-step orchestration in Python scripts.
+
+Temporary `.py` files are permitted **only** when PowerShell quoting makes an inline `python -c` call impractical — for example, when formulas contain single quotes (worksheet names like `'P&L'`) or dollar signs that PowerShell expands. In that case:
+
+1. Write the script to `output/<Company>/` using `Out-File -Encoding utf8`.
+2. The script must contain only imports and a single call to one utility function — no logic beyond passing arguments.
+3. Delete the script immediately after the call succeeds.
+
+Never write a script that wraps multiple utility calls, loops over data, or implements any logic that belongs in the calling workflow.
 
 ## Locate Inputs
 
@@ -88,6 +96,20 @@ Derive each mapping from the inspected workbook structure.
 
 If a newer interim or TTM period exists (either carried over from the source workbook or from a newly downloaded report), insert it after the last completed annual row using `insert_styled_rows` + `write_mapped_rows`. Format the row label per `financial_summary_structure.md`.
 
+## Seed The Estimate Row
+
+Before writing any forecast formulas, verify that every estimate-row cell referenced by the first forecast-row formula contains a non-blank, non-zero value. A blank estimate-row cell propagates `#DIV/0!` silently through the entire forecast chain and into the Result sheet.
+
+Apply these seeds when the corresponding cells are blank or missing:
+
+| Sheet | Cell | Formula | Reason |
+|---|---|---|---|
+| P&L | Shares (O column), estimate row | `=O{last_annual}` | Forecast share chain (`R_r0 = O_estimate * (1+S_r0)`) requires a non-zero base |
+| Cash flow | FCFE (F column), estimate row | `=AVERAGE(F{first_annual}:F{last_annual})` | Forecast FCFE/share chain (`L_r0 = J_estimate * (1+M_r0)`) and FCFE yield require a non-zero base |
+| Cash flow | Distributed cash (G column), estimate row | `=G{last_annual}` | Carry forward most recent dividends to avoid zero in ratios |
+
+Check these cells immediately after populating historical data and before running `Update Forecast Formulas`.
+
 ## Populate Prices, Logo, Price Sensitivity
 
 Follow the same steps as the `$summarize` skill and `tools/update_template_xlsm.py`:
@@ -96,6 +118,7 @@ Follow the same steps as the `$summarize` skill and `tools/update_template_xlsm.
 - Current price → `Result!C2`.
 - Price sensitivity band → `Result!K2:O2` via `populate_result_prices` (two rounded prices below, current price, two above).
 - Company logo → `add_scaled_png` at `Result!E21`, scaled to fit within 1214 × 221.
+  When `download_company_logo.py` auto-lookup returns the wrong image (e.g. resolves to a parent brand or unrelated entity), pass an explicit `--url` pointing directly to the correct logo image on Wikimedia Commons or the company's press kit. Do not retry name-based lookup with variations — switch to `--url` immediately.
 - Apply display currency via `apply_currency_number_formats` if the company reports in a non-USD currency.
 
 ## Apply The Rebuild

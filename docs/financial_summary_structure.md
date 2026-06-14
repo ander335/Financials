@@ -27,6 +27,8 @@ Rows appear in this fixed order:
 6. **Blank row** — one blank row after the summary/CAGR rows, before any forecast or valuation section.
 
 ### Summary row: CAGR vs. average
+When a metric is zero for most of the historical period and only becomes non-zero in the final one or two years (e.g. Distributed Cash at a company that recently initiated a dividend), the CAGR formula produces `#DIV/0!` because the base value is zero. Clear the CAGR cell for such a metric — do not leave a broken formula. If a meaningful short-window rate exists (e.g. year-over-year for the two years it is non-zero), record it in the recent-CAGR row instead.
+
 The summary row uses **long-term CAGR** for metrics where the growth rate over time is the meaningful measure:
 - P&L: Revenue, EBIT, EBITDA, D&A, Debt, Market Cap, Share count
 - Cash flow: CFO, CAPEX, Distributed Cash, FCFE, FCFE/share

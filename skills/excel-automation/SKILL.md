@@ -36,9 +36,43 @@ save_workbook(wb, 'e:/My Drive/Stocks/Acme/Acme_2025.xlsm')
 "
 ```
 
-**Never write a `.py` file to call these tools.** All invocations must use
-the inline `python -c` form above. Do not create temporary scripts, helper
-scripts, or company-specific scripts of any kind.
+Prefer the inline `python -c` form above. When PowerShell quoting makes an
+inline call impractical (formulas containing `'` worksheet names or `$`
+variables), write a minimal temporary `.py` file to `output/<Company>/`
+instead — one import block and one utility call, no logic. Delete the file
+immediately after the call succeeds. Never write scripts that combine
+multiple utility calls or implement any workflow logic.
+
+### PowerShell Quoting Pitfalls
+
+When running `python -c` from PowerShell, three quoting rules apply:
+
+**Rule 1 — No literal `"` inside the argument string.**
+PowerShell strips double-quotes before Python sees them. Pass double-quote characters as `chr(34)` inside the Python code instead.
+
+**Rule 2 — Use a single-quoted heredoc for multi-line code.**
+A `@'...'@` heredoc avoids PowerShell variable expansion (`$VAR`) and quote stripping:
+```powershell
+python -c @'
+import sys; sys.path.insert(0, "tools")
+from xlsm_bricks import open_workbook, save_workbook, set_workbook_cells
+wb = open_workbook("e:/My Drive/Stocks/Acme/Acme_2025.xlsm")
+# ...
+save_workbook(wb, "e:/My Drive/Stocks/Acme/Acme_2025.xlsm")
+'@
+```
+The closing `'@` must start at column 0 with no leading whitespace.
+
+**Rule 3 — No literal `'` inside a `@'...'@` heredoc.**
+A single quote inside the heredoc terminates it early. For Excel cross-sheet formula references that contain worksheet names in single quotes (e.g. `='P&L'!B2`), use `chr(39)`:
+```python
+# Correct — no literal single quote in the heredoc
+q = chr(39)
+formula = "=" + q + "P&L" + q + "!B%d" % row
+
+# Wrong — the ' before P&L closes the heredoc
+formula = "='P&L'!B%d" % row  # BREAKS the heredoc
+```
 
 ---
 
@@ -446,6 +480,13 @@ Accepts an iterable of integer years and returns a sorted list of any gaps.
 
 ```python
 gaps = missing_years([2014, 2015, 2017, 2018])  # → [2016]
+```
+
+Pass a list of integer year values — not a worksheet object. Extract year values first:
+```python
+years = [ws.cell(row=r, column=1).value for r in range(2, 15)
+         if isinstance(ws.cell(row=r, column=1).value, int)]
+gaps = missing_years(years)
 ```
 
 #### `list_external_links(wb) → list[dict]`
