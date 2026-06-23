@@ -6,7 +6,6 @@ These instructions apply to Codex, Claude Code, GitHub Copilot, and any other co
 - Before starting a task, inspect the repo-local `skills/` folder for a skill that matches the user's request.
 - Also inspect the common skills folder at `..\Common\AI\skills`. Use a common skill when it matches the user's request and no more specific repo-local skill applies.
 
-
 ## Available Common Skills
 - Common skills are stored one repo level above this repository in `..\Common\AI\skills`.
 
@@ -17,3 +16,7 @@ These instructions apply to Codex, Claude Code, GitHub Copilot, and any other co
 
 ## Result formatting
 - Result files should be formatted accordingly to the `financial_summary_structure.md` file.
+
+## Temporary scripts
+- One time python scripts for pipeline execution should be created under `scripts/` folder.
+- After the operation is completed, the script should be removed.
