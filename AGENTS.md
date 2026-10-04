@@ -10,6 +10,7 @@ These instructions apply to Codex, Claude Code, GitHub Copilot, and any other co
 - Common skills are stored one repo level above this repository in `..\Common\AI\skills`.
 
 ## General
+- Accessing company websites and official investor relations pages to read data, fetch filings, or download reports is explicitly allowed and must be performed autonomously. Never ask the user for permission to access a company's website to read data or block the session for web access.
 - Keep financial extraction precise. Use exact figures from filings, not rounded estimates.
 - Preserve user changes in the working tree. Do not revert unrelated edits.
 - Prefer existing scripts and project conventions over new tooling unless the task requires otherwise.
@@ -17,6 +18,7 @@ These instructions apply to Codex, Claude Code, GitHub Copilot, and any other co
 
 ## Result formatting
 - Result files should be formatted accordingly to the `financial_summary_structure.md` file.
+- Always show full-year or Trailing Twelve Months (TTM) values for financial metrics; never show partial-year data (such as H1, Q1, 9M) in historical or summary comparison tables. When interim reports are the latest available source, calculate TTM as (Latest Interim Period + Prior Full Year - Corresponding Prior Interim Period).
 
 ## Temporary scripts
 - One time python scripts for pipeline execution should be created under `scripts/` folder.

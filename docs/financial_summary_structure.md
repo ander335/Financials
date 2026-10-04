@@ -14,6 +14,7 @@
 
 ### Years column
 - If TTM or interim data is available, its row label must show only the year number — no "TTM" or period suffix — and must be aligned and formatted identically to the annual rows.
+- Always report full-year or Trailing Twelve Months (TTM) values for financial metrics; never report raw partial-year data (such as H1, Q1, 9M). When interim reports are the latest available source, calculate TTM as (Latest Interim Period + Prior Full Year - Corresponding Prior Interim Period).
 
 ### Row structure (per data sheet)
 

@@ -9,7 +9,9 @@
       "Bash(awk *)",
       "Write(g:\\projects\\Financials\\output\\*)",
       "Edit(g:\\projects\\Financials\\output\\*)",
-      "Read(//c/Users/user/Downloads/**)"
+      "Read(//c/Users/user/Downloads/**)",
+      "WebFetch",
+      "WebSearch"
     ],
     "additionalDirectories": [
       "G:\\projects\\Financials"
