@@ -6,7 +6,7 @@ tools: ['read', 'execute', 'edit', 'todo']
 ---
 
 # Analyze annual reports found in the reports folder.
-- REPORTS_FOLDER=`C:\Users\user\Downloads\`
+- REPORTS_FOLDER=`C:\Users\user\Downloads\Stocks\`
 
 # General
 - Be precise with numbers — use the exact figures from filings, not rounded estimates. Flag any line items that required judgment calls.

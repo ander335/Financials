@@ -11,10 +11,11 @@ These instructions apply to Codex, Claude Code, GitHub Copilot, and any other co
 
 ## General
 - Accessing company websites and official investor relations pages to read data, fetch filings, or download reports is explicitly allowed and must be performed autonomously. Never ask the user for permission to access a company's website to read data or block the session for web access.
+- Download companies' reports not to the Downloads folder directly, but to a `Stocks` subfolder (e.g., `Downloads\Stocks\<Company-Name>\` as specified by `REPORTS_FOLDER`).
 - Keep financial extraction precise. Use exact figures from filings, not rounded estimates.
 - Preserve user changes in the working tree. Do not revert unrelated edits.
 - Prefer existing scripts and project conventions over new tooling unless the task requires otherwise.
-- Store all generated research results and deliverable artifacts—including reports, datasets, workbooks, charts, and exports—under the repository's `outputs/` folder. Do not place research results in the repository root. Use `docs/` only when the user explicitly requests durable documentation.
+- Store all generated research results and deliverable artifacts—including reports, datasets, workbooks, charts, and exports—under the repository's `output/` folder. Never write result files under `outputs/` (always use singular `output/`) or the repository root. Use `docs/` only when the user explicitly requests durable documentation.
 
 ## Result formatting
 - Result files should be formatted accordingly to the `financial_summary_structure.md` file.
